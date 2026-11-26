@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Node dependencies & compile TypeScript
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Commit and push changes
