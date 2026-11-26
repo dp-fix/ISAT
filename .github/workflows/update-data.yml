@@ -1,0 +1,55 @@
+name: Update ISAT Data
+
+on:
+  schedule:
+    # Senin-Jumat: 09:35, 12:05, 16:15 WIB (= 02:35, 05:05, 09:15 UTC)
+    - cron: '35 2 * * 1-5'
+    - cron: '5 5 * * 1-5'
+    - cron: '15 9 * * 1-5'
+  workflow_dispatch:  # Trigger manual dari tab Actions
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch ISAT data & generate JSON
+        run: python scripts/fetch_isat.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies & compile TypeScript
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/isat.json dist/
+          # Hanya commit jika ada perubahan
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: update ISAT data [auto] $(date +'%Y-%m-%d %H:%M WIB')"
+            git push
+          fi
